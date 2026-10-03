@@ -29,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware) {
-         $middleware->trustProxies(at: '*');
         // First thing on every request: if the app is missing its .env or its
         // compiled assets, show the setup screen instead of trying to run.
         $middleware->prepend([

@@ -12,7 +12,6 @@ use Illuminate\Auth\Events\Registered;
 use Illuminate\Auth\Listeners\SendEmailVerificationNotification;
 use Illuminate\Database\Schema\Builder;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\ServiceProvider;
@@ -58,9 +57,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Builder::defaultStringLength(191);
-if ($this->app->environment('production')) {
-    URL::forceScheme('https');
-}
+
         $this->commands([
             InstallCommand::class,
             ClientCommand::class,

@@ -17,8 +17,26 @@ let installPrompt = null;
  * worker, an installing one has no pushManager yet.
  */
 export function registerPanelServiceWorker(firebaseConfig = null) {
-    // Disabled temporarily: public/sw.js is not deployed yet.
-    return Promise.resolve(undefined);
+    if (!('serviceWorker' in navigator)) return Promise.resolve(undefined);
+    if (registration) return Promise.resolve(registration);
+    if (registering) return registering;
+
+    // The config rides on the query string so one worker file serves whichever Firebase
+    // project this install is configured with.
+    const query = firebaseConfig ? '?' + new URLSearchParams(firebaseConfig).toString() : '';
+
+    registering = navigator.serviceWorker.register('/sw.js' + query, { scope: '/' })
+        .then(async (reg) => {
+            registration = reg;
+            await navigator.serviceWorker.ready;
+            return reg;
+        })
+        .catch((e) => {
+            console.error('Service worker registration failed:', e);
+            return undefined;
+        });
+
+    return registering;
 }
 
 /** Chromium fires this instead of showing its own install UI; we show ours. */
