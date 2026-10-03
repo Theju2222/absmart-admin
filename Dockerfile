@@ -1,4 +1,4 @@
-FROM richarvey/nginx-php-fpm:3.1.6
+FROM richarvey/nginx-php-fpm:3.2.1
 
 WORKDIR /var/www/html
 
@@ -9,10 +9,10 @@ ENV RUN_SCRIPTS=1
 ENV REAL_IP_HEADER=1
 ENV COMPOSER_ALLOW_SUPERUSER=1
 
-# Copy Composer manifest files first, so Docker can cache dependencies
+# Copy Composer files first so Docker can cache package installation
 COPY composer.json composer.lock ./
 
-# Install PHP libraries while avoiding Laravel Composer scripts at build time
+# Install PHP dependencies without Laravel post-install scripts
 RUN composer install \
     --no-dev \
     --no-interaction \
@@ -20,11 +20,8 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-# Copy the rest of the Laravel/SnapBuy source code
+# Copy the remaining SnapBuy/Laravel source files
 COPY . .
-
-# The frontend Vite build was already generated locally and committed
-# in public/build, so npm is not required in this container.
 
 RUN chmod +x /var/www/html/start.sh
 

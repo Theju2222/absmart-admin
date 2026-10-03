@@ -3,6 +3,9 @@ set -e
 
 cd /var/www/html
 
+echo "PHP version:"
+php -v
+
 php artisan optimize:clear || true
 php artisan storage:link || true
 
