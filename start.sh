@@ -39,18 +39,29 @@ mkdir -p \
 chown -R www-data:www-data storage bootstrap/cache public
 chmod -R 775 storage bootstrap/cache public
 
-if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
-  echo "Generating Laravel Passport keys..."
-  php artisan passport:keys --force
+# Check whether Passport OAuth tables have been created by the installer/migrations.
+if php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::hasTable('oauth_clients') ? 'yes' : 'no';" | grep -q "yes"; then
+  echo "Passport OAuth tables exist."
+
+  if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
+    echo "Generating Laravel Passport keys..."
+    php artisan passport:keys --force
+  fi
+
+  if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->where('revoked', false)->exists() ? 'yes' : 'no';" | grep -q "yes"; then
+    echo "Creating Laravel Passport personal access client..."
+    php artisan passport:client --personal --name="ABSmart Personal Access Client" --no-interaction
+  fi
+else
+  echo "Passport OAuth tables do not exist yet. Skipping Passport client setup."
 fi
 
 chown -R www-data:www-data storage
-chmod 600 storage/oauth-private.key
-chmod 644 storage/oauth-public.key
-
-if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->exists() ? 'yes' : 'no';" | grep -q "yes"; then
-  echo "Creating Laravel Passport personal access client..."
-  php artisan passport:install --force
+if [ -f storage/oauth-private.key ]; then
+  chmod 600 storage/oauth-private.key
+fi
+if [ -f storage/oauth-public.key ]; then
+  chmod 644 storage/oauth-public.key
 fi
 
 php artisan optimize:clear || true
