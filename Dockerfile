@@ -1,18 +1,45 @@
-FROM richarvey/nginx-php-fpm:3.2.1
+FROM php:8.3-apache
 
 WORKDIR /var/www/html
 
-ENV SKIP_COMPOSER=1
-ENV WEBROOT=/var/www/html/public
-ENV PHP_ERRORS_STDERR=1
-ENV RUN_SCRIPTS=1
-ENV REAL_IP_HEADER=1
 ENV COMPOSER_ALLOW_SUPERUSER=1
+ENV APP_ENV=production
+ENV APP_DEBUG=false
+ENV LOG_CHANNEL=stderr
 
-# Copy Composer files first so Docker can cache package installation
+RUN apt-get update && apt-get install -y \
+    git \
+    unzip \
+    zip \
+    libzip-dev \
+    libpng-dev \
+    libjpeg62-turbo-dev \
+    libfreetype6-dev \
+    libicu-dev \
+    libonig-dev \
+    libxml2-dev \
+    libpq-dev \
+    libjpeg-dev \
+    libmagickwand-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j$(nproc) \
+        bcmath \
+        gd \
+        intl \
+        mbstring \
+        pdo_pgsql \
+        pgsql \
+        zip \
+        exif \
+        pcntl \
+        opcache \
+    && a2enmod rewrite \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+
 COPY composer.json composer.lock ./
 
-# Install PHP dependencies without Laravel post-install scripts
 RUN composer install \
     --no-dev \
     --no-interaction \
@@ -20,11 +47,19 @@ RUN composer install \
     --optimize-autoloader \
     --no-scripts
 
-# Copy the remaining SnapBuy/Laravel source files
 COPY . .
 
-RUN chmod +x /var/www/html/start.sh
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
+    && a2enmod rewrite
 
-EXPOSE 80
+RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
+    && sed -i 's/Listen 80/Listen 10000/' /etc/apache2/ports.conf \
+    && sed -i 's/<VirtualHost \*:80>/<VirtualHost *:10000>/' /etc/apache2/sites-available/000-default.conf
 
-CMD ["/var/www/html/start.sh"]
+COPY apache-laravel.conf /etc/apache2/conf-available/laravel.conf
+RUN a2enconf laravel
+
+EXPOSE 10000
+
+CMD ["apache2-foreground"]
