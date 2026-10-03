@@ -48,6 +48,11 @@ chown -R www-data:www-data storage
 chmod 600 storage/oauth-private.key
 chmod 644 storage/oauth-public.key
 
+if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->exists() ? 'yes' : 'no';" | grep -q "yes"; then
+  echo "Creating Laravel Passport personal access client..."
+  php artisan passport:install --force
+fi
+
 php artisan optimize:clear || true
 php artisan storage:link || true
 
