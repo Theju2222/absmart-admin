@@ -58,8 +58,13 @@ RUN mkdir -p \
         /var/www/html/storage/framework/views \
         /var/www/html/storage/logs \
         /var/www/html/bootstrap/cache \
-    && chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache \
+        /var/www/html/public/uploads \
+        /var/www/html/public/media \
+        /var/www/html/public/images \
+    && chown -R www-data:www-data /var/www/html \
+    && chmod -R 775 /var/www/html/storage \
+        /var/www/html/bootstrap/cache \
+        /var/www/html/public \
     && a2enmod rewrite
 
 RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \

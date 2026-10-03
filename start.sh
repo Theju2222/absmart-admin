@@ -28,6 +28,20 @@ fi
 chown www-data:www-data .env
 chmod 664 .env
 
+mkdir -p \
+  storage/app/public \
+  storage/framework/cache \
+  storage/framework/sessions \
+  storage/framework/views \
+  storage/logs \
+  bootstrap/cache \
+  public/uploads \
+  public/media \
+  public/images
+
+chown -R www-data:www-data storage bootstrap/cache public
+chmod -R 775 storage bootstrap/cache public
+
 php artisan optimize:clear || true
 php artisan storage:link || true
 
