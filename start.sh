@@ -48,6 +48,14 @@ mkdir -p \
 chown -R www-data:www-data storage bootstrap/cache public
 chmod -R ug+rwX storage bootstrap/cache public
 
+if [ ! -f storage/installed ] && php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::hasTable('admins') ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
+  echo "SnapBuy database is installed. Restoring installation marker..."
+  touch storage/installed
+  chown www-data:www-data storage/installed
+  chmod 664 storage/installed
+fi
+
+echo "Clearing Laravel and permission caches..."
 php artisan optimize:clear || true
 php artisan permission:cache-reset || true
 
@@ -55,8 +63,33 @@ if [ ! -L public/storage ]; then
   php artisan storage:link || true
 fi
 
+echo "Checking whether Passport tables exist..."
+
+if php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::hasTable('oauth_clients') ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
+  echo "Passport OAuth tables found."
+
+  if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
+    echo "Generating Laravel Passport encryption keys..."
+    php artisan passport:keys --force
+  fi
+
+  chown www-data:www-data storage/oauth-private.key storage/oauth-public.key
+  chmod 600 storage/oauth-private.key
+  chmod 644 storage/oauth-public.key
+
+  if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->where('revoked', false)->exists() ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
+    echo "Creating Laravel Passport personal access client..."
+
+    php artisan passport:client \
+      --personal \
+      --name="SnapBuy Personal Access Client" \
+      --no-interaction
+  fi
+else
+  echo "Passport OAuth tables are not available. Passport setup skipped."
+fi
+
 echo "Startup preparation complete."
-echo "No migration, database reset, seeding, or Passport command was run."
-echo "SnapBuy installer will perform first-time installation."
+echo "No migrations, destructive reset, truncation, or seeding was run."
 
 exec apache2-foreground
