@@ -44,5 +44,6 @@ chmod -R 775 storage bootstrap/cache public
 
 php artisan optimize:clear || true
 php artisan storage:link || true
+php artisan migrate --force
 
 exec apache2-foreground
