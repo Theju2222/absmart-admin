@@ -152,7 +152,7 @@
     {{-- PWA: manifest is generated from settings, so a rebranded install installs
          under its own name and logo. --}}
     @if(isInstalled())
-        <link rel="manifest" href="{{ url('manifest.webmanifest') }}">
+        <link rel="manifest" href="/manifest.webmanifest">
     @endif
     
     <meta name="theme-color" content="{{ $admin_theme_color ?: '#435ebe' }}">

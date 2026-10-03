@@ -1,0 +1,8 @@
+{
+    "name": "AB Smart Admin",
+    "short_name": "AB Smart Admin",
+    "start_url": "/",
+    "display": "standalone",
+    "background_color": "#ffffff",
+    "theme_color": "#087A3E"
+}
