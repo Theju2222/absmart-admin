@@ -50,13 +50,23 @@ echo "Applying write permissions..."
 chown -R www-data:www-data storage bootstrap/cache public
 chmod -R ug+rwX storage bootstrap/cache public
 
-echo "Clearing Laravel runtime caches..."
+echo "Clearing Laravel and permission caches..."
 php artisan optimize:clear || true
+php artisan permission:cache-reset || true
 
 echo "Creating public storage link when absent..."
 if [ ! -L public/storage ]; then
   php artisan storage:link || true
 fi
+
+# ============================================================
+# ONE-TIME SNAPBUY SEEDER
+# This must be removed immediately after this deployment succeeds.
+# ============================================================
+echo "Running one-time SnapBuy database seeder..."
+php artisan db:seed --force
+echo "One-time SnapBuy database seeder completed."
+# ============================================================
 
 echo "Checking whether Passport tables exist..."
 
@@ -88,7 +98,7 @@ else
   echo "Passport OAuth tables are not available. Passport setup skipped."
 fi
 
-echo "Startup preparation complete."
-echo "No migration, database reset, truncation, or seeding was run."
+echo "Temporary one-time seeding startup complete."
+echo "Starting Apache..."
 
 exec apache2-foreground
