@@ -50,10 +50,8 @@ echo "Applying write permissions..."
 chown -R www-data:www-data storage bootstrap/cache
 chmod -R ug+rwX storage bootstrap/cache
 
-if [ -d public/uploads ]; then
-  chown -R www-data:www-data public/uploads public/media public/images
-  chmod -R ug+rwX public/uploads public/media public/images
-fi
+chown -R www-data:www-data public/uploads public/media public/images
+chmod -R ug+rwX public/uploads public/media public/images
 
 echo "Clearing Laravel runtime caches..."
 php artisan optimize:clear || true
@@ -63,7 +61,16 @@ if [ ! -L public/storage ]; then
   php artisan storage:link || true
 fi
 
+# ============================================================
+# ONE-TIME MIGRATION BLOCK
+# Remove this entire block immediately after a successful deploy.
+# ============================================================
+echo "Running one-time SnapBuy database migrations..."
+php artisan migrate --force
+echo "One-time database migrations completed."
+# ============================================================
+
 echo "Startup preparation complete."
-echo "No migrations, seeds, Passport installation, or database reset were run."
+echo "Apache is starting..."
 
 exec apache2-foreground
