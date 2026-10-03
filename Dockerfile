@@ -67,6 +67,8 @@ RUN sed -i 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available
 COPY apache-laravel.conf /etc/apache2/conf-available/laravel.conf
 RUN a2enconf laravel
 
+RUN chmod +x /var/www/html/start.sh
+
 EXPOSE 10000
 
-CMD ["apache2-foreground"]
+CMD ["/var/www/html/start.sh"]
