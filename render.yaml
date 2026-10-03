@@ -1,0 +1,48 @@
+services:
+  - type: web
+    name: absmart-admin
+    runtime: php
+    plan: free
+    buildCommand: |
+      composer install --no-dev --optimize-autoloader
+      php artisan config:clear
+      php artisan route:clear
+      php artisan view:clear
+      php artisan storage:link || true
+    startCommand: php -S 0.0.0.0:$PORT -t public public/index.php
+    healthCheckPath: /
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: LOG_CHANNEL
+        value: stderr
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        fromDatabase:
+          name: absmart-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: absmart-db
+          property: port
+      - key: DB_DATABASE
+        fromDatabase:
+          name: absmart-db
+          property: database
+      - key: DB_USERNAME
+        fromDatabase:
+          name: absmart-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: absmart-db
+          property: password
+
+databases:
+  - name: absmart-db
+    plan: free
+    databaseName: absmart
+    user: absmart
