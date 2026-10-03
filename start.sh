@@ -26,12 +26,12 @@ CACHE_STORE="${CACHE_STORE:-file}"
 SESSION_DRIVER="${SESSION_DRIVER:-file}"
 QUEUE_CONNECTION="${QUEUE_CONNECTION:-sync}"
 FILESYSTEM_DISK="${FILESYSTEM_DISK:-public}"
+
+INSTALL_MODE="server"
 EOF
 
 chown www-data:www-data .env
 chmod 640 .env
-
-echo "Creating Laravel runtime directories..."
 
 mkdir -p \
   storage/app/public \
@@ -45,60 +45,18 @@ mkdir -p \
   public/media \
   public/images
 
-echo "Applying write permissions..."
-
 chown -R www-data:www-data storage bootstrap/cache public
 chmod -R ug+rwX storage bootstrap/cache public
 
-echo "Clearing Laravel and permission caches..."
 php artisan optimize:clear || true
 php artisan permission:cache-reset || true
 
-echo "Creating public storage link when absent..."
 if [ ! -L public/storage ]; then
   php artisan storage:link || true
 fi
 
-# ============================================================
-# ONE-TIME SNAPBUY SEEDER
-# This must be removed immediately after this deployment succeeds.
-# ============================================================
-echo "Running one-time SnapBuy database seeder..."
-php artisan db:seed --force
-echo "One-time SnapBuy database seeder completed."
-# ============================================================
-
-echo "Checking whether Passport tables exist..."
-
-if php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::hasTable('oauth_clients') ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
-  echo "Passport OAuth tables found."
-
-  if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
-    echo "Generating Laravel Passport encryption keys..."
-    php artisan passport:keys --force
-  else
-    echo "Passport encryption keys already exist."
-  fi
-
-  chown www-data:www-data storage/oauth-private.key storage/oauth-public.key
-  chmod 600 storage/oauth-private.key
-  chmod 644 storage/oauth-public.key
-
-  if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->where('revoked', false)->exists() ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
-    echo "Creating Laravel Passport personal access client..."
-
-    php artisan passport:client \
-      --personal \
-      --name="SnapBuy Personal Access Client" \
-      --no-interaction
-  else
-    echo "Active Passport personal access client already exists."
-  fi
-else
-  echo "Passport OAuth tables are not available. Passport setup skipped."
-fi
-
-echo "Temporary one-time seeding startup complete."
-echo "Starting Apache..."
+echo "Startup preparation complete."
+echo "No migration, database reset, seeding, or Passport command was run."
+echo "SnapBuy installer will perform first-time installation."
 
 exec apache2-foreground
