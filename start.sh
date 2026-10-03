@@ -47,11 +47,8 @@ mkdir -p \
 
 echo "Applying write permissions..."
 
-chown -R www-data:www-data storage bootstrap/cache
-chmod -R ug+rwX storage bootstrap/cache
-
-chown -R www-data:www-data public/uploads public/media public/images
-chmod -R ug+rwX public/uploads public/media public/images
+chown -R www-data:www-data storage bootstrap/cache public
+chmod -R ug+rwX storage bootstrap/cache public
 
 echo "Clearing Laravel runtime caches..."
 php artisan optimize:clear || true
@@ -61,16 +58,37 @@ if [ ! -L public/storage ]; then
   php artisan storage:link || true
 fi
 
-# ============================================================
-# ONE-TIME MIGRATION BLOCK
-# Remove this entire block immediately after a successful deploy.
-# ============================================================
-echo "Running one-time SnapBuy database migrations..."
-php artisan migrate --force
-echo "One-time database migrations completed."
-# ============================================================
+echo "Checking whether Passport tables exist..."
+
+if php artisan tinker --execute="echo \Illuminate\Support\Facades\Schema::hasTable('oauth_clients') ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
+  echo "Passport OAuth tables found."
+
+  if [ ! -f storage/oauth-private.key ] || [ ! -f storage/oauth-public.key ]; then
+    echo "Generating Laravel Passport encryption keys..."
+    php artisan passport:keys --force
+  else
+    echo "Passport encryption keys already exist."
+  fi
+
+  chown www-data:www-data storage/oauth-private.key storage/oauth-public.key
+  chmod 600 storage/oauth-private.key
+  chmod 644 storage/oauth-public.key
+
+  if ! php artisan tinker --execute="echo \Laravel\Passport\Client::where('personal_access_client', true)->where('revoked', false)->exists() ? 'yes' : 'no';" 2>/dev/null | grep -q "yes"; then
+    echo "Creating Laravel Passport personal access client..."
+
+    php artisan passport:client \
+      --personal \
+      --name="SnapBuy Personal Access Client" \
+      --no-interaction
+  else
+    echo "Active Passport personal access client already exists."
+  fi
+else
+  echo "Passport OAuth tables are not available. Passport setup skipped."
+fi
 
 echo "Startup preparation complete."
-echo "Apache is starting..."
+echo "No migration, database reset, truncation, or seeding was run."
 
 exec apache2-foreground
