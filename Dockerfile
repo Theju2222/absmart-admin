@@ -27,8 +27,10 @@ RUN apt-get update && apt-get install -y \
         gd \
         intl \
         mbstring \
-        pdo_pgsql \
-        pgsql \
+        pdo_mysql \
+mysqli \
+pdo_pgsql \
+pgsql \
         zip \
         exif \
         pcntl \

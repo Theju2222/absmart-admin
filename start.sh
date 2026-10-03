@@ -25,7 +25,8 @@ DB_PASSWORD=${DB_PASSWORD}
 EOF
 fi
 
-chmod 644 .env
+chown www-data:www-data .env
+chmod 664 .env
 
 php artisan optimize:clear || true
 php artisan storage:link || true
